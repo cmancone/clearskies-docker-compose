@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: users
+      MYSQL_DATABASE: users
+      MYSQL_USER: users
+      MYSQL_PASSWORD: users
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+  users_api:
+    build:
+      context: ./users
+      dockerfile: Dockerfile
+    container_name: users_api
+    depends_on:
+      - db
+    ports:
+      - "5000:5000"
+    stdin_open: true
+    tty: true
+    environment:
+      WAIT_HOSTS: db:3306
