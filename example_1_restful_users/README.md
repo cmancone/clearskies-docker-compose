@@ -114,3 +114,68 @@ class Users(Models):
 Note that it needs to receive the same backend as the model class, since this also acts as a factory for the model.
 
 ## WSGI Entrypoint
+
+Finally, we need an application!  For this example we're using a WSGI server, so we need a python file with a standard WSGI "receiver".  A minimal WSGI application would look like this:
+
+```
+def application(env, start_response):
+    return [b'Hello world!']
+```
+
+The `env` and `start_response` parameters provide the HTTP context and a callable that will be used to set information about the HTTP response.  As a result, clearskies will need these variables and will have to return an HTTP response.
+
+When building endpoints with clearskies, it uses handlers with pre-configured behavior to generate endpoints.  They will use the information you provided in your model to automatically configure most of the endpoint behavior, and so just need a bit of direction to get started.  To bring it all together, here is our final application configuration (which you can see in [users/api.py](./users/api.py):
+
+```
+import clearskies
+from users import Users
+from user import User
+
+
+def application(env, start_response):
+    api = clearskies.binding_specs.WSGI.init_application(
+        clearskies.handlers.RestfulAPI,
+        {
+            'models_class': Users,
+            'readable_columns': ['name', 'email', 'age', 'created', 'updated'],
+            'writeable_columns': ['name', 'email', 'age'],
+            'searchable_columns': ['name', 'email', 'age'],
+            'default_sort_column': 'name',
+        },
+        env,
+        start_response,
+        authentication=clearskies.authentication.public()
+    )
+    return api()
+```
+
+Naturally, we import clearskies as well as our model and query builder for the model.  The model class is not used here but importing all your models at the beginning of the application will help you avoid errors from pinject related to cyclical dependencies.  After importing everything, we define our standard WSGI receiving function.  We're going to use the special-purpose WSGI binding spec to bootstrap our application.  A [Binding Spec](https://github.com/google/pinject#binding-specs) is a special class used in the pinject library to configure the details of dependency injection.  The WSGI binding spec provides some helpful defaults to get us started and its `init_application` class method requires at least four parameters:
+
+ - The handler class we wish to use.  This determines the overall functionality of our endpoint.
+ - The configuration for the handler
+ - The environment variable from the WSGI server
+ - The start_response callback from the WSGI server
+
+Additional configuration options for the binding spec can be provided as named keyword arguments.  It will return the handler, which just needs to be invoked, and then its return value can be returned to the WSGI server.  Let's walk through what we're providing it with:
+
+### Handler Class
+
+We're providing the `clearskies.handlers.RestfulAPI` class.  Our full list of handlers are not yet documented, but this particular one will create a standard Restful API endpoint like we described at the top of this README file.  It just needs some basic configuration, which is the next argument passed to the `init_application` method:
+
+### Handler Configuration
+
+Each handler class has its own set of configuration values, some of which are required, some of which are optional.  The above example sets all the required configuration options for our Restful API handler:
+
+| Name                  | Value                                                                            |
+|-----------------------|----------------------------------------------------------------------------------|
+| `models_class`        | The query builder for our model class                                            |
+| `readable_columns`    | The list of columns to return to the client in API responses                     |
+| `writeable_columns`   | The list of columns that the client is allowed to set through the API            |
+| `searchable_columns`  | The list of columns that the user can search with through the `/search` endpoint |
+| `default_sort_column` | The default column to sort records by when listing results                       |
+
+### env and start_response
+
+Naturally, clearskies needs the `env` and `start_response` variables from the WSGI server, so these are passed in as the next argument
+
+### Additional dependency injection configuration
