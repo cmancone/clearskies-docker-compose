@@ -14,7 +14,7 @@ clearskies has a pre-baked handler for RESTful APIs which creates the following 
 |---------------------|-------------------|--------------------------------------------|
 | /                   | GET               | Return paginated list of records           |
 | /                   | POST              | Create new record                          |
-| /                   | GET               | Return record by id                        |
+| /[id]               | GET               | Return record by id                        |
 | /[id]               | PUT               | Update record by id                        |
 | /[id]               | DELETE            | Delete record by id                        |
 | /search             | POST              | Search records via conditions in POST body |
