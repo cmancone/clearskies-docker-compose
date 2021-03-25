@@ -194,3 +194,120 @@ Naturally, clearskies needs the `env` and `start_response` variables from the WS
 Finally, additional configuration can be provided to the Binding Spec (and therefore to the dependency injection configuration) as named parameters in the `init_application` call.  In this case we are providing one additional, required configuration: the authentication method.  This is required by any API handler.  clearskies has some pre-made authentication modes, and in this case we're assigning "public" authentication, which means that no authentication will be required.
 
 ## API Usage
+
+We're now ready to go!  To try out this example, clone this repository, cd into this directory, and then just:
+
+```
+docker-compose up
+```
+
+It will launch the service on port 5000 locally, so:
+
+```
+curl 'http://localhost:5000
+```
+
+But we don't have any records yet:
+
+```
+{
+  "status": "success",
+  "data": [],
+  "pagination": {
+    "numberResults": 0,
+    "start": 0,
+    "limit": 100
+  },
+  "error": "",
+  "inputErrors": {}
+}
+```
+
+So let's create a record:
+
+```
+curl 'http://localhost:5000' -d '{"name": "Conor Mancone", "email": "cmancone@gmail.com", "age": 100}'
+```
+
+And our response:
+
+```
+{
+  "status": "success",
+  "data": {
+    "id": 1,
+    "name": "Conor Mancone",
+    "email": "cmancone@gmail.com",
+    "age": 100,
+    "created": "2021-03-25T16:13:59+00:00",
+    "updated": "2021-03-25T16:13:59+00:00"
+  },
+  "pagination": {},
+  "error": "",
+  "inputErrors": {}
+}
+```
+
+So now we can fetch our latest records:
+
+```
+curl 'http://localhost:5000'
+```
+
+and our response:
+
+```
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "name": "Conor Mancone",
+      "email": "cmancone@gmail.com",
+      "age": 100,
+      "created": "2021-03-25T16:13:59+00:00",
+      "updated": "2021-03-25T16:13:59+00:00"
+    }
+  ],
+  "pagination": {
+    "numberResults": 1,
+    "start": 0,
+    "limit": 100
+  },
+  "error": "",
+  "inputErrors": {}
+}
+```
+
+This automatically applies strict input checking, which we can see with a request like this:
+
+```
+curl 'http://localhost:5000' -d '{"age":"asdf","email":"cmancone","sup":"hey"}' | jq
+```
+
+which gives this response:
+
+```
+{
+  "status": "inputErrors",
+  "inputErrors": {
+    "sup": "Input column 'sup' is not an allowed column",
+    "name": "'name' is required.",
+    "email": "Invalid email address",
+    "age": "age must be an integer"
+  },
+  "error": "",
+  "data": [],
+  "pagination": {}
+}
+```
+
+Notice that the JSON response from clearskies is intended to always have a consistent response format.  You should always see the following "root" objects in your resposne:
+
+| name        | value                                                                     |
+|-------------|---------------------------------------------------------------------------|
+| status      | success OR clientError OR inputErrors OR failure                          |
+| inputErrors | An dictionary with key/value pairs denoting input errors from the request |
+| error       | An error message: used only with a status of `clientError`                |
+| data        | The actual data for the response                                          |
+| pagination  | Information about the maximum/current size of the response                |
