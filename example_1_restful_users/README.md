@@ -304,10 +304,10 @@ which gives this response:
 
 Notice that the JSON response from clearskies is intended to always have a consistent response format.  You should always see the following "root" objects in your resposne:
 
-| name        | value                                                                     |
-|-------------|---------------------------------------------------------------------------|
-| status      | success OR clientError OR inputErrors OR failure                          |
-| inputErrors | An dictionary with key/value pairs denoting input errors from the request |
-| error       | An error message: used only with a status of `clientError`                |
-| data        | The actual data for the response                                          |
-| pagination  | Information about the maximum/current size of the response                |
+| name        | value                                                                      |
+|-------------|----------------------------------------------------------------------------|
+| status      | `success` OR `clientError` OR `inputErrors` OR `failure`                   |
+| inputErrors | An dictionary with input errors.  Used only with a status of `inputErrors` |
+| error       | An error message: used only with a status of `clientError`                 |
+| data        | The actual data for the response                                           |
+| pagination  | Information about the maximum/current size of the response                 |
