@@ -195,7 +195,17 @@ Finally, additional configuration can be provided to the Binding Spec (and there
 
 ## API Usage
 
-We're now ready to go!  To try out this example, clone this repository, cd into this directory, and then just:
+The JSON response from clearskies is intended to always have a consistent response format.  You should always see the following "root" objects in your resposne:
+
+| name        | value                                                                      |
+|-------------|----------------------------------------------------------------------------|
+| status      | `success` OR `clientError` OR `inputErrors` OR `failure`                   |
+| inputErrors | An dictionary with input errors.  Used only with a status of `inputErrors` |
+| error       | An error message: used only with a status of `clientError`                 |
+| data        | The actual data for the response                                           |
+| pagination  | Information about the maximum/current size of the response                 |
+
+To try out this example, clone this repository, cd into the directory that contains this README.md file, and then just:
 
 ```
 docker-compose up
@@ -302,12 +312,12 @@ which gives this response:
 }
 ```
 
-Notice that the JSON response from clearskies is intended to always have a consistent response format.  You should always see the following "root" objects in your resposne:
+We also have a search endpoint that allows us to make more complicated queries like so:
 
-| name        | value                                                                      |
-|-------------|----------------------------------------------------------------------------|
-| status      | `success` OR `clientError` OR `inputErrors` OR `failure`                   |
-| inputErrors | An dictionary with input errors.  Used only with a status of `inputErrors` |
-| error       | An error message: used only with a status of `clientError`                 |
-| data        | The actual data for the response                                           |
-| pagination  | Information about the maximum/current size of the response                 |
+```
+curl 'http://localhost:5000/search' \
+    -d '{"where":[{"column":"name", "value":"conor"}],"sort":[{"column":"age","direction":"desc"}]}'
+
+curl 'http://localhost:5000/search' \
+    -d '{"where":[{"column":"age", "operator":"<", "value":"conor"}]}'
+```
