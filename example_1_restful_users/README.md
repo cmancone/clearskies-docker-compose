@@ -1,6 +1,17 @@
 # Simple, Public, RESTful users API
 
-In this example we will build a simple RESTful API to manage a list of users.  We want to keep track of:
+In this example we will build a simple RESTful API to manage a list of users.  This article is broken down as such:
+
+ - [Overview](#overview)
+ - [Model](#model)
+ - [Query Builder](#query-builder)
+ - [WSGI Entrypoint](#wsgi-entrypoint)
+ - [API Usage](#api-usage)
+
+
+## Overview
+
+We want to keep track of:
 
  - Name
  - Email
@@ -30,7 +41,7 @@ In order to make this happen, our main requirement is just a model.  Models in c
 
 ### Model Backends
 
-We're using a cursor backend for this example, which means that our model will manage records in a database.  Another common backend (to be explored in other examples) is an API backend, where the model manages records via an external API.  This is typically used in a microservices context, where you want to fetch and save data to a different API.  The model in this case just provides a consistent way to access the external API.  Naturally, clearskies comes with an backend for making calls to a clearskies API.  This means that if you are making calls to another clearskies API, you don't have to program any details about the API calls - the clearskies API backend will handle this for you automatically.
+We're using a cursor backend for this example, which means that our model will manage records in a database.  Another common backend (to be explored in other examples) is an API backend, where the model manages records via an external API.  This is typically used in a microservices context, where you want to fetch and save data to a different API.  The model in this case just provides a consistent way to access the external API.  Naturally, clearskies comes with a backend for making calls to a clearskies API.  This means that if you are making calls to another clearskies API, you don't have to program any details about the API calls - the clearskies API backend will handle this for you automatically.
 
 By default clearskies uses a [MariaDB connector](https://mariadb.com/resources/blog/how-to-connect-python-programs-to-mariadb/) that works for both MariaDB and MySQL.  It assumes that you have 4 environment variables configured:
 
@@ -179,3 +190,7 @@ Each handler class has its own set of configuration values, some of which are re
 Naturally, clearskies needs the `env` and `start_response` variables from the WSGI server, so these are passed in as the next argument
 
 ### Additional dependency injection configuration
+
+Finally, additional configuration can be provided to the Binding Spec (and therefore to the dependency injection configuration) as named parameters in the `init_application` call.  In this case we are providing one additional, required configuration: the authentication method.  This is required by any API handler.  clearskies has some pre-made authentication modes, and in this case we're assigning "public" authentication, which means that no authentication will be required.
+
+## API Usage
