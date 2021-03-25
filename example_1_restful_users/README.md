@@ -98,6 +98,7 @@ We're setting maximum lengths for our `name` and `email` columns and also markin
 
 The model class is used to create/update a single record in the backend.  Building queries to fetch models is the job of the query builder, so we must define this too.  Fortunately, [it's very simple](./users/users.py):
 
+```
 from clearskies import Models
 from user import User
 
@@ -108,6 +109,8 @@ class Users(Models):
 
     def model_class(self):
         return User
+```
 
+Note that it needs to receive the same backend as the model class, since this also acts as a factory for the model.
 
 ## WSGI Entrypoint
