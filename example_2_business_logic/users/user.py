@@ -13,9 +13,9 @@ class User(Model):
         return OrderedDict([
             string('name', input_requirements=[Required, (MaximumLength, 255)]),
             business_email('email', input_requirements=[Required, (MaximumLength, 255)]),
-            string('city', is_writeable=False, input_requirements=[(MaximumLength, 255)]),
-            string('state', is_writeable=False, input_requirements=[(MaximumLength, 255)]),
-            string('country', is_writeable=False, input_requirements=[(MaximumLength, 255)]),
+            string('city', is_writeable=False),
+            string('state', is_writeable=False),
+            string('country', is_writeable=False),
             integer('age', is_writeable=False),
             created('created'),
             updated('updated'),
