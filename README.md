@@ -6,3 +6,4 @@ This repository shows various uses-cases for clearskies.  It uses [uwsgi](https:
 
  1. [Building a simple, public, restful, users API](./example_1_restful_users)
  2. [Adding in business logic](./example_2_business_logic)
+ 3. [Tests!](./example_3_tests)
