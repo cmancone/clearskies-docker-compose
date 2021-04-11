@@ -1,5 +1,5 @@
 from clearskies import Models
-from user import User
+from .user import User
 
 
 class Users(Models):

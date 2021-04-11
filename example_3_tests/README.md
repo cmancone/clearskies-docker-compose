@@ -172,4 +172,4 @@ class BusinessEmailTest(unittest.TestCase):
         )
 ```
 
-See the actual [business_email_test.py](./users/business_email_test.py) file for a few more tests on our branches.
+See the actual [business_email_test.py](./users/business_email_test.py) file for a few more tests on the code branches.

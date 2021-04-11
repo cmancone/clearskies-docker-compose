@@ -8,11 +8,11 @@ services:
       MYSQL_DATABASE: users
       MYSQL_USER: users
       MYSQL_PASSWORD: users
-  example_2_business_logic:
+  example_3_tests:
     build:
       context: ./users
       dockerfile: Dockerfile
-    container_name: example_2_business_logic
+    container_name: example_3_tests
     depends_on:
       - db
     ports:

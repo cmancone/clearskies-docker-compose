@@ -1,6 +1,5 @@
 import clearskies
-from users import Users
-from user import User
+from models import Users
 
 
 def application(env, start_response):

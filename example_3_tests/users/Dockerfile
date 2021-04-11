@@ -12,7 +12,8 @@ RUN wget 'https://raw.githubusercontent.com/cmancone/mygrations/master/mygrate.p
     chmod a+x mygrate.py && \
     mv mygrate.py /usr/local/bin/mygrate.py
 
-COPY *.py ./
+COPY models models
+COPY api.py ./
 COPY start_uwsgi.sh ./
 COPY .env ./
 COPY mygrate.conf ./

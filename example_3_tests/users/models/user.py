@@ -2,7 +2,7 @@ from collections import OrderedDict
 from clearskies import Model
 from clearskies.column_types import string, integer, created, updated
 from clearskies.input_requirements import Required, MaximumLength
-from business_email import business_email
+from .business_email import business_email
 
 
 class User(Model):

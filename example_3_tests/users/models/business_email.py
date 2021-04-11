@@ -1,6 +1,5 @@
 from clearskies.column_types import Email, build_column_config
 
-
 def business_email(name, **kwargs):
     return build_column_config(name, BusinessEmail, **kwargs)
 
