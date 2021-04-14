@@ -47,7 +47,7 @@ class BusinessEmailTest(unittest.TestCase):
 
 We create an instance of our class and then call its `configure` method, passing in the column name, configuration, and then the model class (which isn't needed in our example, so I provided a filler).  Then we just call our `check_search` method with whatever we want and check the result.  An empty string means the value is allowed, and otherwise we should hae an error message.
 
-Of course you need a runner, and so an example runner for the project is given in the [test.py](./test.py) file.  It's as easy as this:
+Of course you need a runner, and so an example runner for the project is given in the [users/test.py](./users/test.py) file.  It's as easy as this:
 
 ```
 $ ./test.py
@@ -172,4 +172,4 @@ class BusinessEmailTest(unittest.TestCase):
         )
 ```
 
-See the actual [business_email_test.py](./users/business_email_test.py) file for a few more tests on the code branches.
+See the actual [users/models/business_email_test.py](./users/models/business_email_test.py) file for a few more tests on the code branches.
