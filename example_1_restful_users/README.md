@@ -41,7 +41,7 @@ In order to make this happen, our main requirement is just a model.  Models in c
 
 ### Model Backends
 
-We're using a cursor backend for this example, which means that our model will manage records in a database.  Another common backend (to be explored in other examples) is an API backend, where the model manages records via an external API.  This is typically used in a microservices context, where you want to fetch and save data to a different API.  The model in this case just provides a consistent way to access the external API.  Naturally, clearskies comes with a backend for making calls to a clearskies API.  This means that if you are making calls to another clearskies API, you don't have to program any details about the API calls - the clearskies API backend will handle this for you automatically.
+We're using a cursor backend for this example, which means that our model will manage records in a database.  Another common backend (to be explored in other examples) is an API backend, where the model manages records via an external API.  This is typically used in a microservices context, where you want to fetch and save data to a different API.  The model in this case just provides a consistent way to access the external API.
 
 By default clearskies uses a [MariaDB connector](https://mariadb.com/resources/blog/how-to-connect-python-programs-to-mariadb/) that works for both MariaDB and MySQL.  It assumes that you have 4 environment variables configured:
 
@@ -214,7 +214,7 @@ docker-compose up
 It will launch the service on port 5000 locally, so:
 
 ```
-curl 'http://localhost:5000
+curl 'http://localhost:5000'
 ```
 
 But we don't have any records yet:

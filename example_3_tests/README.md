@@ -3,7 +3,7 @@
 Of course, any good application needs some tests!  Now it's time to look at testing our application.
 
  - [Unit Tests](#unit-tests)
- - [Application Bootstrapping](#application-bootstrapping)
+ - [Integration Tests](#integration-tests)
 
 # Unit Tests
 
@@ -173,3 +173,88 @@ class BusinessEmailTest(unittest.TestCase):
 ```
 
 See the actual [users/models/business_email_test.py](./users/models/business_email_test.py) file for a few more tests on the code branches.
+
+# Integration Tests
+
+Of course, the line between integration tests and unit tests can be... blurry.  In the following examples we're still going to mock out a few dependencies to simplify testing, but we'll still get as close to a production test as is practical/helpful.  As part of this, we're going to mock out 4 things:
+
+ 1. [Swap the CursorBackend for a MemoryBackend.](#memorybackend)
+ 2. [Mock the HTTP request/response object since we don't have an actual WSGI server running things.](#request-and-response)
+ 3. [Mock out the requests library so we don't actually have to use a 3rd party service.](#request-library)
+ 4. [Set the current time to simplify testing.](#current-time)
+
+We can do all these things without making any changes to our production code.  The key is our binding spec.  In case you missed it, [the binding spec is a special class in the pinject library](https://github.com/google/pinject#binding-specs) that allows you to configure the dependency injection process.  The base clearskies binding spec gives options to easily override all the dependencies at run-time, both at the class level and object level.  When running an integration test on the full application, we want to override dependencies at the class level so that the actual application will pick up these changes itself.
+
+To do this at the class level, you use the `bind` class method of the clearskies binding class.  This accepts a dictionary with the objects to use instead of the default dependencies.
+
+## MemoryBackend
+
+To replace the cursor backend with a memory backend, we'll build an instance of the [MemoryBackend](https://github.com/cmancone/clearskies/blob/master/src/clearskies/backends/memory_backend.py) class.  This class has no depdencies itself, but needs some configuration.  First you must create the "tables" in the database, which you do by simply calling the `create_table` method and passing in a model class that you intend to use with the memory backend.  This creates a list of expected table/column names, so that an error can be thrown if you use incorrect values.  You can then create some initial records in the memory backend if desired.  The process looks something like this:
+
+```
+import unittest
+from clearskies.binding_specs import WSGI
+from clearskies.backends import MemoryBackend
+from models import User, Users
+
+
+class ApiTest(unittest.TestCase):
+    def setUp(self):
+        # create the memory backend
+        self.memory_backend = MemoryBackend()
+
+        # create a "table" for our User class (the class, not a model instance!)
+        self.memory_backend.create_table(User)
+
+        # add a record to the table.  Note that the model class is required so that it knows what table
+        # to stick the record in.
+        self.memory_backend.create_record_with_class(User, {
+            'name': 'Conor',
+            'email': 'cmancone@example.com',
+            'age': 120,
+            'created': self.now,
+            'updated': self.now,
+        })
+
+        # now override the cursor_backend and tell clearskies to inject our memory backend instead
+        WSGI.bind({
+            'cursor_backend': self.memory_backend
+        })
+```
+
+## Request and Response
+
+Since we're not hooked up to an actual server, we need to mock out our HTTP request and response object.  In "typical" clearskies usage you don't have to deal directly with the HTTP request and response, since both are used by the handlers, and the WSGI binding spec automatically provides the necessary object and configuration.  So, as a quick intro, both the request and response are managed by an object descended from the [InputOutput](https://github.com/cmancone/clearskies/blob/master/src/clearskies/input_outputs/input_output.py) class. Yes, this is a clear violation of the Single Responsibility Principle.  Yes, there is a reason for this violation.  No, I don't regret this choice ☺.
+
+To help with testing, there is a [mock InputOuput](https://github.com/cmancone/clearskies/blob/master/src/clearskies/mocks/input_output.py) class which you can use to specify an arbitrary HTTP request and see the details of the response sent back by the clearskies application.
+
+## Mock requests library
+
+Our [BusinessEmail](https://github.com/cmancone/clearskies-docker-compose/blob/master/example_3_tests/users/models/business_email.py) class made an HTTP call with the [requests](https://pypi.org/project/requests/) library.  If we don't mock out the requests library, then our tests will actually make an HTTP request.  This likely isn't what you want, since it means that your integration tests will also be testing a 3rd party service, which isn't usually the point.  Therefore we'll mock out the requests library just like we did in the unit tests, and then just specify our requests mock as an override in the dependency injection configuration:
+
+```
+import unittest
+from unittest.mock import MagicMock
+from types import SimpleNamespace
+
+
+class ApiTest(unittest.TestCase):
+    def setUp(self):
+        # The SimpleNamespace is a convenient way to make an "anonymous" model to attach mock method calls to.
+        response = SimpleNamespace(json=lambda: {'results':[{
+            'location': {
+                'city': 'cool city',
+                'state': 'awesome state',
+                'country': 'my country',
+            },
+            'dob': {
+                'age': 20,
+            }
+        }]})
+        get = MagicMock(return_value=response)
+        self.requests = SimpleNamespace(get=get)
+
+        WSGI.bind({
+            'requests': self.requests,
+        })
+```
