@@ -200,6 +200,9 @@ from models import User, Users
 
 class ApiTest(unittest.TestCase):
     def setUp(self):
+        # a standard "now" will make life easier in case the second changes mid-testing
+        self.now = datetime.now().replace(tzinfo=timezone.utc, microsecond=0)
+
         # create the memory backend
         self.memory_backend = MemoryBackend()
 
@@ -226,7 +229,37 @@ class ApiTest(unittest.TestCase):
 
 Since we're not hooked up to an actual server, we need to mock out our HTTP request and response object.  In "typical" clearskies usage you don't have to deal directly with the HTTP request and response, since both are used by the handlers, and the WSGI binding spec automatically provides the necessary object and configuration.  So, as a quick intro, both the request and response are managed by an object descended from the [InputOutput](https://github.com/cmancone/clearskies/blob/master/src/clearskies/input_outputs/input_output.py) class. Yes, this is a clear violation of the Single Responsibility Principle.  Yes, there is a reason for this violation.  No, I don't regret this choice ☺.
 
-To help with testing, there is a [mock InputOuput](https://github.com/cmancone/clearskies/blob/master/src/clearskies/mocks/input_output.py) class which you can use to specify an arbitrary HTTP request and see the details of the response sent back by the clearskies application.
+clearskies provides a [mock InputOuput](https://github.com/cmancone/clearskies/blob/master/src/clearskies/mocks/input_output.py) class which you can use to specify an arbitrary HTTP request and see the details of the response sent back by the clearskies application.  By default it will specify a GET request with an empty URL, which in the case of our application will result in returning the first page of entries.  Setting it up looks something like this:
+
+```
+import unittest
+from clearskies.mocks import InputOutput
+from clearskies.binding_specs import WSGI
+
+
+class ApiTest(unittest.TestCase):
+    def setUp(self):
+        # we need our own Input/Output object since there is no web server
+        self.input_output = InputOutput()
+
+        # This is where we update our binding spec class to use the couple things we had to mock.
+        WSGI.bind({
+            'input_output': self.input_output,
+        })
+```
+
+It has a number of methods to change the request.  For example, the following would change the request on our clearskies backend to update the record with an id of `1`:
+
+```
+    def setUp(self):
+        self.input_output = InputOutput()
+        self.input_output.set_request_method('PUT')
+        self.input_output.set_request_url('/1')
+        self.input_output.set_body({
+            'name': 'CMan',
+            'email': 'cman@example2.com',
+        })
+```
 
 ## Mock requests library
 
@@ -258,3 +291,61 @@ class ApiTest(unittest.TestCase):
             'requests': self.requests,
         })
 ```
+
+## Current Time
+
+The created and updated fields will record the current time in the backend.  As a result, it can be handy to set the current time in the tests.  This way you can test the full data returned by clearskies, without worrying about what exact time it was when the record was persisted to the backend in the test.  clearskies has a special injection point just for this called `now` which expects a datetime object (with the timezone set to UTC!).  Therefore, we can set the current time for the test:
+
+```
+import unittest
+from datetime import datetime, timezone
+
+
+class ApiTest(unittest.TestCase):
+    def setUp(self):
+        # a standard "now" will make life easier in case the second changes mid-testing
+        self.now = datetime.now().replace(tzinfo=timezone.utc, microsecond=0)
+        WSGI.bind({
+            'now': self.now,
+        })
+```
+
+# A test!
+
+Now we're ready to run an integration test.  All four of the above pieces are put together in the `setUp` method of the [integration test for the API endpoint](./users/api_test.py).  Check that out to see how it all comes together.
+
+To then test our endpoint, we import the `application` function from the [api.py](./users/api.py) file and invoke it.  This is the same function that the WSGI server would call to execute our endpoint, but since we've swapped out all our dependencies in the binding spec at the class level, we get our test!  The application function will return a tuple with two values: the first is our response (as an OrderedDict) and the second is the HTTP status code.  If you needed to check the response headers, you could do that via the mock input output object.  Therefore, testing an endpoint looks a bit like this:
+
+```
+    def test_list_all(self):
+        # we want to call the same application method that the WSGI server would.  However, we don't need
+        # either the 'environment' variable or the start_response call back.  We don't need an environment because
+        # instead everything will just come through the self.input_output object which we injected in and will
+        # configuire.  We don't need a start_response object becauise our mock InputOutput object won't use it
+        # anyway - it will just return the response as a tuple with (response, status_code).
+        # Therefore, we can just call the application function and get back the result from the API endpoint.
+        result = application('environment', 'start_response')
+        status_code = result[1]
+        response = result[0]
+        self.assertEquals(200, status_code)
+        self.assertEquals(1, len(response['data']))
+
+        # Because nothing was converted to JSON, we'll get back an OrderedDict, which is how clearskies builds its
+        # response so it can control the order of the elements in the final JSON response.  In general, the order
+        # will match the order of the columns in your model, with 'id' first.
+        self.assertEquals(OrderedDict([
+            ('id', 1),
+            ('name', 'Conor'),
+            ('email', 'cmancone@example.com'),
+            ('city', None),
+            ('state', None),
+            ('country', None),
+            ('age', 120),
+            ('created', self.now.isoformat()),
+            ('updated', self.now.isoformat()),
+        ]), response['data'][0])
+        self.assertEquals({'numberResults': 1, 'start': 0, 'limit': 100}, response['pagination'])
+        self.assertEquals('success', response['status'])
+```
+
+Check out [the full test](./users/api_test.py) for more details and examples of testing other API endpoints.
