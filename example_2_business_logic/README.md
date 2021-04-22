@@ -141,10 +141,10 @@ def application(env, start_response):
             'writeable_columns': ['name', 'email'],
             'searchable_columns': ['name', 'email'],
             'default_sort_column': 'name',
+            'authentication': clearskies.authentication.public(),
         },
         env,
         start_response,
-        authentication=clearskies.authentication.public()
     )
     return api()
 ```

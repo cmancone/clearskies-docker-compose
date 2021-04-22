@@ -152,10 +152,10 @@ def application(env, start_response):
             'writeable_columns': ['name', 'email', 'age'],
             'searchable_columns': ['name', 'email', 'age'],
             'default_sort_column': 'name',
+            'authentication': clearskies.authentication.public(),
         },
         env,
         start_response,
-        authentication=clearskies.authentication.public()
     )
     return api()
 ```
@@ -184,6 +184,7 @@ Each handler class has its own set of configuration values, some of which are re
 | `writeable_columns`   | The list of columns that the client is allowed to set through the API            |
 | `searchable_columns`  | The list of columns that the user can search with through the `/search` endpoint |
 | `default_sort_column` | The default column to sort records by when listing results                       |
+| `authentication`      | The authentication method to use for the endpoint                                |
 
 ### env and start_response
 
