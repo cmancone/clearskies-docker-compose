@@ -1,11 +1,9 @@
 import unittest
+from clearskies.contexts import test
 from unittest.mock import MagicMock
 from types import SimpleNamespace
-from clearskies.mocks import InputOutput
-from clearskies.binding_specs import WSGI
-from clearskies.backends import MemoryBackend
 from models import User, Users
-from api import application
+from .applications import users_api
 from datetime import datetime, timezone
 from collections import OrderedDict
 

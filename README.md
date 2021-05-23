@@ -11,3 +11,4 @@ Keep in mind that these examples are meant to be just that: examples of how to u
  1. [Building a simple, public, restful, users API](./example_1_restful_users)
  2. [Adding in business logic](./example_2_business_logic)
  3. [Tests!](./example_3_tests)
+ 3. [Model Relationships](./example_4_relationships)

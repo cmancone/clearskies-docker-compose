@@ -84,7 +84,7 @@ The only other required part of a model is the column definitions.  Column defin
 from collections import OrderedDict
 from clearskies import Model
 from clearskies.column_types import string, email, integer, created, updated
-from clearskies.input_requirements import Required, MaximumLength
+from clearskies.input_requirements import required, maximum_length
 
 
 class User(Model):
@@ -93,8 +93,8 @@ class User(Model):
 
     def columns_configuration(self):
         return OrderedDict([
-            string('name', input_requirements=[Required, (MaximumLength, 255)]),
-            email('email', input_requirements=[Required, (MaximumLength, 255)]),
+            string('name', input_requirements=[reqired(), maximum_length(255)]),
+            email('email', input_requirements=[reqired(), maximum_length(255)]),
             integer('age'),
             created('created'),
             updated('updated'),
@@ -142,36 +142,55 @@ import clearskies
 from users import Users
 from user import User
 
+users_app = clearskies.Application(
+    clearskies.handlers.RestfulAPI,
+    {
+        'models_class': Users,
+        'readable_columns': ['name', 'email', 'age', 'created', 'updated'],
+        'writeable_columns': ['name', 'email', 'age'],
+        'searchable_columns': ['name', 'email', 'age'],
+        'default_sort_column': 'name',
+        'authentication': clearskies.authentication.public(),
+    },
+)
+
+api = clearskies.contexts.wsgi(users_app)
 
 def application(env, start_response):
-    api = clearskies.binding_specs.WSGI.init_application(
-        clearskies.handlers.RestfulAPI,
-        {
-            'models_class': Users,
-            'readable_columns': ['name', 'email', 'age', 'created', 'updated'],
-            'writeable_columns': ['name', 'email', 'age'],
-            'searchable_columns': ['name', 'email', 'age'],
-            'default_sort_column': 'name',
-            'authentication': clearskies.authentication.public(),
-        },
-        env,
-        start_response,
-    )
-    return api()
+    return api(env, start_response)
+
 ```
 
-Naturally, we import clearskies as well as our model and query builder for the model.  The model class is not used here but importing all your models at the beginning of the application will help you avoid errors from pinject related to cyclical dependencies.  After importing everything, we define our standard WSGI receiving function.  We're going to use the special-purpose WSGI binding spec to bootstrap our application.  A [Binding Spec](https://github.com/google/pinject#binding-specs) is a special class used in the pinject library to configure the details of dependency injection.  The WSGI binding spec provides some helpful defaults to get us started and its `init_application` class method requires at least four parameters:
+Naturally, we import clearskies as well as our model and query builder for the model.  The model class is not used here but importing all your models at the beginning of the application will help you avoid errors from pinject related to cyclical dependencies.
 
- - The handler class we wish to use.  This determines the overall functionality of our endpoint.
- - The configuration for the handler
- - The environment variable from the WSGI server
- - The start_response callback from the WSGI server
+Next we define our application (the `users_app` variable).  This defines exactly what we want our app to do - in this case, present a RESTful API.  The exact behavior is deteremined by the handler class (`clearskies.handlers.RestfulAPI`) as well as the handler configuration.  Each handler class has its own definition of required and optional parameters you can provide to control the application behavior.
 
-Additional configuration options for the binding spec can be provided as named keyword arguments.  It will return the handler, which just needs to be invoked, and then its return value can be returned to the WSGI server.  Let's walk through what we're providing it with:
+It's also important to note that this application (the `users_app` variable) is **completely separated** from any execution context.  In other words, our application is not making any assumptions about how it is running (e.g. a WSGI server, Lambda, command line, queue listener, etc...)  Instead, the application must be attached to an execution "context".  In this case, the context we're attaching our clearskies application to is a WSGI server, and we do so like this:
+
+```
+api = clearskies.contexts.wsgi(users_app)
+```
+
+Our application is now ready to be executed by a WSGI server!  By changing this one line of code though, you could just as easily run this same application in a Lambda, a test suite, etc...
+
+Finally, we want to call this from our standard WSGI receiving function.  It's important that the application and context are created outside of the WSGI function, as this will allow the WSGI server to cache our application, which can substantially reduce execution time.  Naturally, when we execute the application, we have to provide the `env` and `start_response` variables from the WSGI server.
+
+## Building an Application
+
+Above we showed how to build an application, but a quick explanation is in order.  A clearskies "application" defines the behavior of clearskies through a combination of the handler class (which defines the overall functionality) and the handler configuration (which provides the details needed for the handler to work).  You provide these two things when building the clearskies application, which looks like this:
+
+```
+app = clearskies.Application(
+    HandlerClass,
+    {'handler': 'config'},
+)
+```
+
+As mentioned above, the list of required and optional configuration settings vary from handler class to handler class.
 
 ### Handler Class
 
-We're providing the `clearskies.handlers.RestfulAPI` class.  Our full list of handlers are not yet documented, but this particular one will create a standard Restful API endpoint like we described at the top of this README file.  It just needs some basic configuration, which is the next argument passed to the `init_application` method:
+We're providing the `clearskies.handlers.RestfulAPI` class.  Our full list of handlers are not yet documented, but this particular one will create a standard Restful API endpoint like we described at the top of this README file.  It just needs some basic configuration:
 
 ### Handler Configuration
 
@@ -185,14 +204,6 @@ Each handler class has its own set of configuration values, some of which are re
 | `searchable_columns`  | The list of columns that the user can search with through the `/search` endpoint |
 | `default_sort_column` | The default column to sort records by when listing results                       |
 | `authentication`      | The authentication method to use for the endpoint                                |
-
-### env and start_response
-
-Naturally, clearskies needs the `env` and `start_response` variables from the WSGI server, so these are passed in as the next argument
-
-### Additional dependency injection configuration
-
-Finally, additional configuration can be provided to the Binding Spec (and therefore to the dependency injection configuration) as named parameters in the `init_application` call.  In this case we are providing one additional, required configuration: the authentication method.  This is required by any API handler.  clearskies has some pre-made authentication modes, and in this case we're assigning "public" authentication, which means that no authentication will be required.
 
 ## API Usage
 
