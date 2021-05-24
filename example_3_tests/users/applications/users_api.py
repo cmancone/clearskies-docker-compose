@@ -1,5 +1,5 @@
 import clearskies
-import .models
+from . import models
 
 users_api = clearskies.Application(
     clearskies.handlers.RestfulAPI,
