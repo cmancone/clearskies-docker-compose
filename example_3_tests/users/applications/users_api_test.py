@@ -1,33 +1,26 @@
 import unittest
+from clearskies.contexts import test
 from unittest.mock import MagicMock
 from types import SimpleNamespace
-from clearskies.mocks import InputOutput
-from clearskies.binding_specs import WSGI
-from clearskies.backends import MemoryBackend
 from models import User, Users
-from api import application
-from datetime import datetime, timezone
+from .users_api import users_api
 from collections import OrderedDict
 
 
-class ApiTest(unittest.TestCase):
+class UsersApiTest(unittest.TestCase):
     def setUp(self):
-        # a standard "now" will make life easier in case the second changes mid-testing
-        self.now = datetime.now().replace(tzinfo=timezone.utc, microsecond=0)
+        self.api = test(users_api)
 
         # we're also going to switch our cursor backend for an in-memory backend, create a table, and add a record
-        self.memory_backend = MemoryBackend()
+        self.memory_backend = self.api.memory_backend
         self.memory_backend.create_table(User)
         self.memory_backend.create_record_with_class(User, {
             'name': 'Conor',
             'email': 'cmancone@example.com',
             'age': 120,
-            'created': self.now,
-            'updated': self.now,
+            'created': self.api.now,
+            'updated': self.api.now,
         })
-
-        # we need our own Input/Output object since there is no web server
-        self.input_output = InputOutput()
 
         # Finally, we'll mock out a requests object for the API call made by our email column.
         # This isn't strictly required, but if we don't do it then our integration test will actually make calls
@@ -45,22 +38,13 @@ class ApiTest(unittest.TestCase):
         get = MagicMock(return_value=response)
         self.requests = SimpleNamespace(get=get)
 
-        # This is where we update our binding spec class to use the couple things we had to mock.
-        WSGI.bind({
-            'cursor_backend': self.memory_backend,
-            'input_output': self.input_output,
-            'requests': self.requests,
-            'now': self.now,
-        })
+        # and we need to mock out the "usual" requests library
+        self.api.bind('requests', self.requests)
 
     def test_list_all(self):
-        # we want to call the same application method that the WSGI server would.  However, we don't need
-        # either the 'environment' variable or the start_response call back.  We don't need an environment because
-        # instead everything will just come through the self.input_output object which we injected in and will
-        # configuire.  We don't need a start_response object becauise our mock InputOutput object won't use it
-        # anyway - it will just return the response as a tuple with (response, status_code).
-        # Therefore, we can just call the application function and get back the result from the API endpoint.
-        result = application('environment', 'start_response')
+        # fetch all records, which doesn't need anything special in the request: empty post body, default route,
+        # GET method.  Therefore, we can just invoke our app in the test context without any effort
+        result = self.api()
         status_code = result[1]
         response = result[0]
         self.assertEquals(200, status_code)
@@ -77,20 +61,21 @@ class ApiTest(unittest.TestCase):
             ('state', None),
             ('country', None),
             ('age', 120),
-            ('created', self.now.isoformat()),
-            ('updated', self.now.isoformat()),
+            ('created', self.api.now.isoformat()),
+            ('updated', self.api.now.isoformat()),
         ]), response['data'][0])
         self.assertEquals({'numberResults': 1, 'start': 0, 'limit': 100}, response['pagination'])
         self.assertEquals('success', response['status'])
 
     def test_create(self):
         # To test out a create, we'll switch our request to a POST and provide a body.
-        self.input_output.set_request_method('POST')
-        self.input_output.set_body({
-            'name': 'Alice',
-            'email': 'alice@example2.com',
-        })
-        result = application('environment', 'start_response')
+        result = self.api(
+            method='POST',
+            body={
+                'name': 'Alice',
+                'email': 'alice@example2.com',
+            }
+        )
         status_code = result[1]
         response = result[0]
         self.assertEquals(200, status_code)
@@ -102,19 +87,20 @@ class ApiTest(unittest.TestCase):
             ('state', 'awesome state'),
             ('country', 'my country'),
             ('age', 20),
-            ('created', self.now.isoformat()),
-            ('updated', self.now.isoformat()),
+            ('created', self.api.now.isoformat()),
+            ('updated', self.api.now.isoformat()),
         ]), response['data'])
         self.assertEquals('success', response['status'])
 
     def test_update(self):
-        self.input_output.set_request_method('PUT')
-        self.input_output.set_request_url('/1')
-        self.input_output.set_body({
-            'name': 'CMan',
-            'email': 'cman@example2.com',
-        })
-        result = application('environment', 'start_response')
+        result = self.api(
+            method='PUT',
+            url='/1',
+            body={
+                'name': 'CMan',
+                'email': 'cman@example2.com',
+            }
+        )
         status_code = result[1]
         response = result[0]
         self.assertEquals(200, status_code)
@@ -126,7 +112,7 @@ class ApiTest(unittest.TestCase):
             ('state', 'awesome state'),
             ('country', 'my country'),
             ('age', 20),
-            ('created', self.now.isoformat()),
-            ('updated', self.now.isoformat()),
+            ('created', self.api.now.isoformat()),
+            ('updated', self.api.now.isoformat()),
         ]), response['data'])
         self.assertEquals('success', response['status'])

@@ -1,19 +1,8 @@
 import clearskies
 from models import Users
+from .applications import users_api
 
+api = clearskies.contexts.wsgi(users_api)
 
 def application(env, start_response):
-    api = clearskies.binding_specs.WSGI.init_application(
-        clearskies.handlers.RestfulAPI,
-        {
-            'models_class': Users,
-            'readable_columns': ['name', 'email', 'city', 'state', 'country', 'age', 'created', 'updated'],
-            'writeable_columns': ['name', 'email'],
-            'searchable_columns': ['name', 'email'],
-            'default_sort_column': 'name',
-            'authentication': clearskies.authentication.public(),
-        },
-        env,
-        start_response,
-    )
-    return api()
+    return api(env, start_response)
