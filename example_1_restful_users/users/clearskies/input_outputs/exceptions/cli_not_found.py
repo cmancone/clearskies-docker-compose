@@ -1,2 +1,0 @@
-class CLINotFound(Exception):
-    pass

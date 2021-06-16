@@ -1,2 +1,0 @@
-class CLIInputError(Exception):
-    pass
