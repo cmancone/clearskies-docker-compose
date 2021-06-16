@@ -5,7 +5,7 @@ WORKDIR /tmp
 RUN apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
 RUN apt-get install -y wget build-essential python3-dev python3-pip libmariadb-dev python3-mysqldb wait-for-it
-RUN pip3 install uwsgi mygrations clear-skies
+RUN pip3 install uwsgi mygrations clear-skies PyMySQL
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 RUN wget 'https://raw.githubusercontent.com/cmancone/mygrations/master/mygrate.py' && \
