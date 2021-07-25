@@ -1,6 +1,5 @@
 ./build.sh
 *.kate-swp
-.env
 
 
 # Byte-compiled / optimized / DLL files

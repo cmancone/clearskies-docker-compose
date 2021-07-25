@@ -28,5 +28,6 @@ users_api = clearskies.Application(
                 },
             },
         ],
+        'schema_route': 'schema',
     },
 )
